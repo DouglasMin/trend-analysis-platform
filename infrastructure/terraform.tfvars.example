@@ -1,5 +1,5 @@
 # AWS Configuration
-aws_region     = "us-east-1"
+aws_region     = "ap-northeast-2"
 aws_profile    = "dongik2"
 aws_account_id = "863518440691"
 
@@ -25,6 +25,7 @@ ecr_repository_name = "trend-analysis-lambda"
 
 # S3 Configuration
 frontend_bucket_name = "trend-analysis-frontend-dev"
+enable_frontend_hosting = true
 
 # CloudFront Configuration
 cloudfront_price_class = "PriceClass_100"

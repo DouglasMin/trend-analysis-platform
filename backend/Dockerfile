@@ -1,17 +1,22 @@
-# Use AWS Lambda Node.js 22 base image
+# Build stage
+FROM public.ecr.aws/lambda/nodejs:22 AS build
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
+
+# Runtime stage
 FROM public.ecr.aws/lambda/nodejs:22
 
-# Copy package files
+WORKDIR /var/task
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install production dependencies
-RUN npm ci --only=production
+COPY --from=build /app/dist ./
 
-# Copy source code
-COPY dist/ ./dist/
-
-# Copy any additional files needed at runtime
-COPY .env* ./
-
-# Set the CMD to your handler
-CMD [ "dist/handlers/index.handler" ]
+# Default handler can be overridden per Lambda configuration
+CMD [ "index.interestOverTimeHandler" ]

@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string
-  default     = "us-east-1"
+  default     = "ap-northeast-2"
 }
 
 variable "aws_profile" {
@@ -72,6 +72,12 @@ variable "frontend_bucket_name" {
   description = "S3 bucket name for frontend hosting"
   type        = string
   default     = "trend-analysis-frontend"
+}
+
+variable "enable_frontend_hosting" {
+  description = "Whether to create S3 + CloudFront resources for frontend hosting"
+  type        = bool
+  default     = true
 }
 
 # CloudFront Configuration
