@@ -5,15 +5,15 @@ resource "aws_api_gateway_rest_api" "backend" {
 
 locals {
   api_route_targets = {
-    "trends/interest-over-time"      = "interest_over_time"
-    "trends/interest-by-region"      = "interest_by_region"
-    "trends/compared-by-region"      = "compared_breakdown_by_region"
-    "trends/related-queries"         = "related_queries"
-    "trends/related-topics"          = "related_topics"
-    "trends/trending-now"            = "trending_now"
-    "trends/news"                    = "news_trends"
-    "trends/shopping"                = "shopping_trends"
-    "trends/comprehensive-report"    = "comprehensive_report"
+    "trends/interest-over-time"   = "interest_over_time"
+    "trends/interest-by-region"   = "interest_by_region"
+    "trends/compared-by-region"   = "compared_breakdown_by_region"
+    "trends/related-queries"      = "related_queries"
+    "trends/related-topics"       = "related_topics"
+    "trends/trending-now"         = "trending_now"
+    "trends/news"                 = "news_trends"
+    "trends/shopping"             = "shopping_trends"
+    "trends/comprehensive-report" = "comprehensive_report"
   }
 
   api_routes = {
@@ -30,25 +30,43 @@ resource "aws_api_gateway_resource" "trends" {
 }
 
 resource "aws_api_gateway_resource" "route_children" {
-  for_each = local.api_routes
+  for_each    = local.api_routes
   rest_api_id = aws_api_gateway_rest_api.backend.id
   parent_id   = aws_api_gateway_resource.trends.id
   path_part   = split("/", each.key)[1]
 }
 
-resource "aws_api_gateway_method" "route_any" {
+resource "aws_api_gateway_method" "route_get" {
   for_each      = local.api_routes
   rest_api_id   = aws_api_gateway_rest_api.backend.id
   resource_id   = aws_api_gateway_resource.route_children[each.key].id
-  http_method   = "ANY"
+  http_method   = "GET"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "route_any" {
+resource "aws_api_gateway_integration" "route_get" {
   for_each                = local.api_routes
   rest_api_id             = aws_api_gateway_rest_api.backend.id
   resource_id             = aws_api_gateway_resource.route_children[each.key].id
-  http_method             = aws_api_gateway_method.route_any[each.key].http_method
+  http_method             = aws_api_gateway_method.route_get[each.key].http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = each.value
+}
+
+resource "aws_api_gateway_method" "route_options" {
+  for_each      = local.api_routes
+  rest_api_id   = aws_api_gateway_rest_api.backend.id
+  resource_id   = aws_api_gateway_resource.route_children[each.key].id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "route_options" {
+  for_each                = local.api_routes
+  rest_api_id             = aws_api_gateway_rest_api.backend.id
+  resource_id             = aws_api_gateway_resource.route_children[each.key].id
+  http_method             = aws_api_gateway_method.route_options[each.key].http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = each.value
@@ -66,7 +84,8 @@ resource "aws_lambda_permission" "apigw" {
 resource "aws_api_gateway_deployment" "backend" {
   rest_api_id = aws_api_gateway_rest_api.backend.id
   depends_on = [
-    aws_api_gateway_integration.route_any,
+    aws_api_gateway_integration.route_get,
+    aws_api_gateway_integration.route_options,
   ]
 }
 

@@ -1,14 +1,14 @@
 locals {
   lambda_handlers = {
-    interest_over_time             = "index.interestOverTimeHandler"
-    interest_by_region             = "index.interestByRegionHandler"
-    compared_breakdown_by_region   = "index.comparedBreakdownByRegionHandler"
-    related_queries                = "index.relatedQueriesHandler"
-    related_topics                 = "index.relatedTopicsHandler"
-    trending_now                   = "index.trendingNowHandler"
-    news_trends                     = "index.newsTrendsHandler"
-    shopping_trends                = "index.shoppingTrendsHandler"
-    comprehensive_report           = "index.comprehensiveReportHandler"
+    interest_over_time           = "index.interestOverTimeHandler"
+    interest_by_region           = "index.interestByRegionHandler"
+    compared_breakdown_by_region = "index.comparedBreakdownByRegionHandler"
+    related_queries              = "index.relatedQueriesHandler"
+    related_topics               = "index.relatedTopicsHandler"
+    trending_now                 = "index.trendingNowHandler"
+    news_trends                  = "index.newsTrendsHandler"
+    shopping_trends              = "index.shoppingTrendsHandler"
+    comprehensive_report         = "index.comprehensiveReportHandler"
   }
 }
 

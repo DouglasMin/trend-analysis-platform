@@ -1,60 +1,69 @@
 #!/bin/bash
 
-# Exit on error
-set -e
-
-echo "🚀 Starting backend deployment..."
-
-# Configuration
-AWS_REGION="${AWS_REGION:-us-east-1}"
-AWS_PROFILE="${AWS_PROFILE:-dongik2}"
-AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-863518440691}"
-ECR_REPOSITORY="${ECR_REPOSITORY:-trend-analysis-lambda}"
-LAMBDA_FUNCTION_NAME="${LAMBDA_FUNCTION_NAME:-trend-analysis-dev}"
+# Automated Lambda deployment via ECR + Docker
+set -euo pipefail
 
 # Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
 RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}📦 Building TypeScript code...${NC}"
-cd backend
-npm run build
+# Configuration (defaults align with this project)
+AWS_PROFILE="${AWS_PROFILE:-dongik2}"
+AWS_REGION="${AWS_REGION:-ap-northeast-2}"
+AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-863518440691}"
+ECR_REPOSITORY="${ECR_REPOSITORY:-trend-analysis-lambda}"
+LAMBDA_PREFIX="${LAMBDA_PREFIX:-trend-analysis-dev-}"
 
-echo -e "${BLUE}🔐 Logging into ECR...${NC}"
-aws ecr get-login-password --region $AWS_REGION --profile $AWS_PROFILE | \
-  docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKEND_DIR="$ROOT_DIR/backend"
+ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+ECR_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}"
+TIMESTAMP="$(date +%s)"
 
-# Get ECR repository URI
-ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY"
+echo -e "${YELLOW}🚀 Starting backend deployment...${NC}\n"
 
-echo -e "${BLUE}🐳 Building Docker image...${NC}"
-docker build -t $ECR_REPOSITORY:latest .
+echo -e "${YELLOW}📦 Building and pushing linux/amd64 image...${NC}"
+cd "$BACKEND_DIR"
+docker buildx build --platform linux/amd64 --provenance=false \
+  -t "${ECR_URI}:latest" \
+  -t "${ECR_URI}:${TIMESTAMP}" \
+  --push .
+echo -e "${GREEN}✓ Image pushed to ECR${NC}\n"
 
-echo -e "${BLUE}🏷️  Tagging Docker image...${NC}"
-docker tag $ECR_REPOSITORY:latest $ECR_URI:latest
-docker tag $ECR_REPOSITORY:latest $ECR_URI:$(date +%Y%m%d-%H%M%S)
+echo -e "${YELLOW}🔐 Ensuring ECR login (docker may already be authenticated)...${NC}"
+aws ecr get-login-password --region "$AWS_REGION" --profile "$AWS_PROFILE" | \
+  docker login --username AWS --password-stdin "$ECR_REGISTRY" >/dev/null
+echo -e "${GREEN}✓ ECR login OK${NC}\n"
 
-echo -e "${BLUE}⬆️  Pushing Docker image to ECR...${NC}"
-docker push $ECR_URI:latest
-docker push $ECR_URI:$(date +%Y%m%d-%H%M%S)
+echo -e "${YELLOW}🔄 Updating Lambda functions with latest image...${NC}"
+FUNCTIONS="$(aws lambda list-functions \
+  --region "$AWS_REGION" \
+  --profile "$AWS_PROFILE" \
+  --query "Functions[?starts_with(FunctionName, \`${LAMBDA_PREFIX}\`)].FunctionName" \
+  --output text)"
 
-echo -e "${BLUE}🔄 Updating Lambda function...${NC}"
-aws lambda update-function-code \
-  --function-name $LAMBDA_FUNCTION_NAME \
-  --image-uri $ECR_URI:latest \
-  --region $AWS_REGION \
-  --profile $AWS_PROFILE
+if [ -z "$FUNCTIONS" ]; then
+  echo -e "${RED}No Lambda functions found with prefix: ${LAMBDA_PREFIX}${NC}"
+  exit 1
+fi
 
-echo -e "${BLUE}⏳ Waiting for Lambda update to complete...${NC}"
-aws lambda wait function-updated \
-  --function-name $LAMBDA_FUNCTION_NAME \
-  --region $AWS_REGION \
-  --profile $AWS_PROFILE
+for fn in $FUNCTIONS; do
+  aws lambda update-function-code \
+    --function-name "$fn" \
+    --image-uri "${ECR_URI}:latest" \
+    --region "$AWS_REGION" \
+    --profile "$AWS_PROFILE" >/dev/null
+done
+
+for fn in $FUNCTIONS; do
+  aws lambda wait function-updated \
+    --function-name "$fn" \
+    --region "$AWS_REGION" \
+    --profile "$AWS_PROFILE"
+done
 
 echo -e "${GREEN}✅ Backend deployment complete!${NC}"
-echo -e "${GREEN}Lambda function: $LAMBDA_FUNCTION_NAME${NC}"
-echo -e "${GREEN}Image: $ECR_URI:latest${NC}"
-
-cd ..
+echo -e "Image: ${YELLOW}${ECR_URI}:latest${NC}"
+echo -e "Functions: ${YELLOW}${FUNCTIONS}${NC}\n"
