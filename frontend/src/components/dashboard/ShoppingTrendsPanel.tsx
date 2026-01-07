@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTrendsStore } from '@/stores/useTrendsStore';
+import ErrorAlert from '@/components/feedback/ErrorAlert';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 
 export default function ShoppingTrendsPanel() {
   const [query, setQuery] = useState('wireless earbuds');
@@ -11,16 +13,6 @@ export default function ShoppingTrendsPanel() {
   const shoppingTrends = useTrendsStore((state) => state.shoppingTrends);
   const fetchShoppingTrends = useTrendsStore((state) => state.fetchShoppingTrends);
 
-  useEffect(() => {
-    void fetchShoppingTrends({
-      q: query,
-      location: location || undefined,
-      hl: hl || undefined,
-      gl: gl || undefined,
-      no_cache: noCache || undefined,
-    });
-  }, [fetchShoppingTrends, gl, hl, location, noCache, query]);
-
   return (
     <div className="space-y-6">
       <div>
@@ -31,7 +23,19 @@ export default function ShoppingTrendsPanel() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5">
+      <form
+        className="rounded-2xl border border-ink-700/10 bg-white/70 p-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void fetchShoppingTrends({
+            q: query,
+            location: location || undefined,
+            hl: hl || undefined,
+            gl: gl || undefined,
+            no_cache: noCache || undefined,
+          });
+        }}
+      >
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <label className="space-y-2 text-xs text-ink-700/70">
             Query
@@ -78,27 +82,19 @@ export default function ShoppingTrendsPanel() {
         <div className="mt-4">
           <button
             className="rounded-full bg-ink-900 px-5 py-2 text-xs font-semibold text-paper"
-            type="button"
-            onClick={() => {
-              void fetchShoppingTrends({
-                q: query,
-                location: location || undefined,
-                hl: hl || undefined,
-                gl: gl || undefined,
-                no_cache: noCache || undefined,
-              });
-            }}
+            type="submit"
           >
             Fetch shopping trends
           </button>
         </div>
-      </div>
+      </form>
 
       <div className="grid gap-4 md:grid-cols-3">
         {shoppingTrends.status === 'loading' && (
-          <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5 text-sm text-ink-700/70">
-            Loading shopping results...
-          </div>
+          <LoadingSpinner label="Loading shopping results..." />
+        )}
+        {shoppingTrends.error && (
+          <ErrorAlert title="Shopping error" message={shoppingTrends.error} />
         )}
         {shoppingTrends.status !== 'loading' && shoppingTrends.data?.items.length === 0 && (
           <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5 text-sm text-ink-700/70">

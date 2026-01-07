@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useComprehensiveReport } from '@/hooks/useComprehensiveReport';
 import { useDataExport } from '@/hooks/useDataExport';
 import TimeSeriesChart from '@/components/charts/TimeSeriesChart';
 import RegionalMap from '@/components/charts/RegionalMap';
 import RelatedInsightsChart, { type RelatedInsightItem } from '@/components/charts/RelatedInsightsChart';
+import ErrorAlert from '@/components/feedback/ErrorAlert';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 
 export default function ComprehensiveReportView() {
   const [query, setQuery] = useState('ai');
@@ -22,10 +24,6 @@ export default function ComprehensiveReportView() {
     noCache,
   });
   const { exportReport } = useDataExport();
-
-  useEffect(() => {
-    void generate();
-  }, [generate]);
 
   const sections = [
     {
@@ -96,7 +94,13 @@ export default function ComprehensiveReportView() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5">
+      <form
+        className="rounded-2xl border border-ink-700/10 bg-white/70 p-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void generate();
+        }}
+      >
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <label className="space-y-2 text-xs text-ink-700/70">
             Query
@@ -150,8 +154,7 @@ export default function ComprehensiveReportView() {
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             className="rounded-full bg-ink-900 px-5 py-2 text-xs font-semibold text-paper"
-            type="button"
-            onClick={() => void generate()}
+            type="submit"
           >
             Generate report
           </button>
@@ -173,9 +176,10 @@ export default function ComprehensiveReportView() {
               </button>
             </>
           )}
-          {error && <span className="text-xs text-accent-500">{error}</span>}
+          {loading && <LoadingSpinner label="Generating report..." />}
+          {error && <ErrorAlert title="Report error" message={error} />}
         </div>
-      </div>
+      </form>
 
       <div className="grid gap-4 md:grid-cols-2">
         {sections.map((section) => (
@@ -194,17 +198,25 @@ export default function ComprehensiveReportView() {
       <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
           <p className="mb-3 text-xs uppercase tracking-[0.25em] text-ink-700/60">Time Series</p>
-          <TimeSeriesChart data={report?.timeSeries} />
+          {loading ? <LoadingSpinner label="Loading time series..." /> : <TimeSeriesChart data={report?.timeSeries} />}
         </div>
         <div>
           <p className="mb-3 text-xs uppercase tracking-[0.25em] text-ink-700/60">Regional Map</p>
-          <RegionalMap data={report?.regional} />
+          {loading ? <LoadingSpinner label="Loading regional data..." /> : <RegionalMap data={report?.regional} />}
         </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <RelatedInsightsChart title="Related Queries" items={relatedQueryItems} />
-        <RelatedInsightsChart title="Related Topics" items={relatedTopicItems} />
+        {loading ? (
+          <LoadingSpinner label="Loading related queries..." />
+        ) : (
+          <RelatedInsightsChart title="Related Queries" items={relatedQueryItems} />
+        )}
+        {loading ? (
+          <LoadingSpinner label="Loading related topics..." />
+        ) : (
+          <RelatedInsightsChart title="Related Topics" items={relatedTopicItems} />
+        )}
       </div>
 
       <div className="rounded-2xl border border-ink-700/10 bg-ink-900 px-5 py-4 text-xs text-paper/80">

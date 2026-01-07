@@ -1,6 +1,8 @@
 import TrendingNowPanel from '@/components/dashboard/TrendingNowPanel';
 import TimeSeriesChart from '@/components/charts/TimeSeriesChart';
 import { useTrendAnalysis } from '@/hooks/useTrendAnalysis';
+import ErrorAlert from '@/components/feedback/ErrorAlert';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 
 const DASHBOARD_QUERIES = ['ai'];
 
@@ -14,7 +16,7 @@ export default function Dashboard() {
     queries: DASHBOARD_QUERIES,
     dateRange: 'today 3-m',
     geo: 'KR',
-    autoFetch: true,
+    autoFetch: false,
   });
 
   return (
@@ -47,14 +49,15 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="mt-4">
-          {timeSeriesLoading && (
-            <div className="rounded-2xl border border-dashed border-ink-700/20 bg-white/60 p-6 text-sm text-ink-700/70">
-              Loading trend snapshot...
-            </div>
+          {timeSeriesLoading ? (
+            <LoadingSpinner label="Loading trend snapshot..." />
+          ) : (
+            <TimeSeriesChart data={timeSeries} height={220} />
           )}
-          {!timeSeriesLoading && <TimeSeriesChart data={timeSeries} height={220} />}
           {timeSeriesError && (
-            <p className="mt-2 text-xs text-accent-500">Trend error: {timeSeriesError}</p>
+            <div className="mt-3">
+              <ErrorAlert message={timeSeriesError} />
+            </div>
           )}
         </div>
       </div>

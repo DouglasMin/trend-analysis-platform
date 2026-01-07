@@ -6,6 +6,7 @@ interface SearchBarProps {
   onSubmit?: (queries: string[]) => void;
   maxQueries?: number;
   placeholder?: string;
+  submitMode?: 'button' | 'submit';
 }
 
 function parseQueries(raw: string): string[] {
@@ -21,6 +22,7 @@ export default function SearchBar({
   onSubmit,
   maxQueries = 5,
   placeholder = 'ai, robotics',
+  submitMode = 'button',
 }: SearchBarProps) {
   const [touched, setTouched] = useState(false);
   const queries = useMemo(() => parseQueries(value), [value]);
@@ -48,14 +50,18 @@ export default function SearchBar({
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
-              onSubmit?.(queries);
+              if (submitMode === 'button') {
+                onSubmit?.(queries);
+              }
             }
           }}
         />
         <button
           className="rounded-full bg-ink-900 px-4 py-2 text-xs font-semibold text-paper"
-          type="button"
-          onClick={() => onSubmit?.(queries)}
+          type={submitMode === 'submit' ? 'submit' : 'button'}
+          onClick={() => {
+            if (submitMode === 'button') onSubmit?.(queries);
+          }}
         >
           Analyze
         </button>

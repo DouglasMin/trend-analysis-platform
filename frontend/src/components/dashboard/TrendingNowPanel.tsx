@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTrendsStore } from '@/stores/useTrendsStore';
+import ErrorAlert from '@/components/feedback/ErrorAlert';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 
 export default function TrendingNowPanel() {
   const [geo, setGeo] = useState('KR');
@@ -9,10 +11,6 @@ export default function TrendingNowPanel() {
 
   const trendingNow = useTrendsStore((state) => state.trendingNow);
   const fetchTrendingNow = useTrendsStore((state) => state.fetchTrendingNow);
-
-  useEffect(() => {
-    void fetchTrendingNow({ geo, hl, frequency, no_cache: noCache || undefined });
-  }, [fetchTrendingNow, frequency, geo, hl, noCache]);
 
   return (
     <div className="rounded-3xl border border-ink-700/10 bg-ink-900 p-6 text-paper">
@@ -30,7 +28,13 @@ export default function TrendingNowPanel() {
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
+      <form
+        className="mt-4 grid gap-3 md:grid-cols-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void fetchTrendingNow({ geo, hl, frequency, no_cache: noCache || undefined });
+        }}
+      >
         <label className="space-y-2 text-xs text-paper/70">
           Geo
           <input
@@ -66,13 +70,15 @@ export default function TrendingNowPanel() {
           />
           Skip cache
         </label>
-      </div>
+      </form>
 
       <div className="mt-5 space-y-3">
-        {trendingNow.status === 'loading' && (
-          <div className="rounded-2xl bg-white/10 px-4 py-3 text-xs text-paper/70">
-            Loading trending stories...
-          </div>
+        {trendingNow.status === 'loading' && <LoadingSpinner label="Loading trending stories..." />}
+        {trendingNow.error && (
+          <ErrorAlert
+            title="Trending now error"
+            message={trendingNow.error}
+          />
         )}
         {trendingNow.status !== 'loading' && trendingNow.data?.stories.length === 0 && (
           <div className="rounded-2xl bg-white/10 px-4 py-3 text-xs text-paper/70">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTrendAnalysis } from '@/hooks/useTrendAnalysis';
 import { useTrendsStore } from '@/stores/useTrendsStore';
 import type { TrendProperty } from '@/types/params';
@@ -8,6 +8,8 @@ import TimeSeriesChart from '@/components/charts/TimeSeriesChart';
 import RegionalMap from '@/components/charts/RegionalMap';
 import RelatedInsightsChart, { type RelatedInsightItem } from '@/components/charts/RelatedInsightsChart';
 import TrendComparisonChart from '@/components/charts/TrendComparisonChart';
+import ErrorAlert from '@/components/feedback/ErrorAlert';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 
 export default function TrendsDashboard() {
   const [queryInput, setQueryInput] = useState('ai, robotics');
@@ -55,15 +57,6 @@ export default function TrendsDashboard() {
     };
   }, [queries, dateRange, geo, category, propertyFilter, noCache]);
 
-  useEffect(() => {
-    if (!requestParams) return;
-    void refetch();
-    void fetchInterestByRegion(requestParams);
-    void fetchComparedByRegion(requestParams);
-    void fetchRelatedQueries(requestParams);
-    void fetchRelatedTopics(requestParams);
-  }, [fetchComparedByRegion, fetchInterestByRegion, fetchRelatedQueries, fetchRelatedTopics, refetch, requestParams]);
-
   const comparedTop = comparedByRegion.data?.series[0]?.values.slice(0, 5) ?? [];
 
   const relatedQueryItems: RelatedInsightItem[] = [
@@ -102,7 +95,18 @@ export default function TrendsDashboard() {
         </p>
       </div>
 
-      <div className="space-y-4">
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!requestParams) return;
+          void refetch();
+          void fetchInterestByRegion(requestParams);
+          void fetchComparedByRegion(requestParams);
+          void fetchRelatedQueries(requestParams);
+          void fetchRelatedTopics(requestParams);
+        }}
+      >
         <SearchBar
           value={queryInput}
           onChange={setQueryInput}
@@ -114,6 +118,7 @@ export default function TrendsDashboard() {
             void fetchRelatedQueries(requestParams);
             void fetchRelatedTopics(requestParams);
           }}
+          submitMode="submit"
         />
         <FilterPanel
           dateRange={dateRange}
@@ -128,32 +133,33 @@ export default function TrendsDashboard() {
           onNoCacheChange={setNoCache}
         />
         {timeSeriesError && (
-          <span className="text-xs text-accent-500">Time series error: {timeSeriesError}</span>
+          <ErrorAlert title="Time series error" message={timeSeriesError} />
         )}
-      </div>
+      </form>
 
       <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5">
           <p className="text-xs uppercase tracking-[0.25em] text-ink-700/60">Interest Over Time</p>
           <div className="mt-4">
-            {timeSeriesLoading && (
-              <div className="rounded-2xl border border-dashed border-ink-700/20 bg-white/60 p-6 text-sm text-ink-700/70">
-                Loading time series...
-              </div>
+            {timeSeriesLoading ? (
+              <LoadingSpinner label="Loading time series..." />
+            ) : (
+              <TimeSeriesChart data={timeSeries} />
             )}
-            {!timeSeriesLoading && <TimeSeriesChart data={timeSeries} />}
           </div>
         </div>
         <div className="rounded-2xl border border-ink-700/10 bg-paper/80 p-5">
           <p className="text-xs uppercase tracking-[0.25em] text-ink-700/60">Regional Breakout</p>
           <div className="mt-4">
-            {interestByRegion.status === 'loading' && (
-              <div className="rounded-2xl border border-dashed border-ink-700/20 bg-paper/60 p-6 text-sm text-ink-700/70">
-                Loading regional data...
-              </div>
-            )}
-            {interestByRegion.status !== 'loading' && (
+            {interestByRegion.status === 'loading' ? (
+              <LoadingSpinner label="Loading regional data..." />
+            ) : (
               <RegionalMap data={interestByRegion.data} />
+            )}
+            {interestByRegion.error && (
+              <div className="mt-3">
+                <ErrorAlert title="Regional data error" message={interestByRegion.error} />
+              </div>
             )}
           </div>
           <div className="mt-4 border-t border-ink-700/10 pt-4">
@@ -170,6 +176,11 @@ export default function TrendsDashboard() {
                 </div>
               ))}
             </div>
+            {comparedByRegion.error && (
+              <div className="mt-3">
+                <ErrorAlert title="Compared regions error" message={comparedByRegion.error} />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -179,20 +190,26 @@ export default function TrendsDashboard() {
       <div className="grid gap-5 lg:grid-cols-2">
         <div>
           {relatedQueries.status === 'loading' ? (
-            <div className="rounded-2xl border border-dashed border-ink-700/20 bg-white/60 p-6 text-sm text-ink-700/70">
-              Loading related queries...
-            </div>
+            <LoadingSpinner label="Loading related queries..." />
           ) : (
             <RelatedInsightsChart title="Related Queries" items={relatedQueryItems} />
+          )}
+          {relatedQueries.error && (
+            <div className="mt-3">
+              <ErrorAlert title="Related queries error" message={relatedQueries.error} />
+            </div>
           )}
         </div>
         <div>
           {relatedTopics.status === 'loading' ? (
-            <div className="rounded-2xl border border-dashed border-ink-700/20 bg-white/60 p-6 text-sm text-ink-700/70">
-              Loading related topics...
-            </div>
+            <LoadingSpinner label="Loading related topics..." />
           ) : (
             <RelatedInsightsChart title="Related Topics" items={relatedTopicItems} />
+          )}
+          {relatedTopics.error && (
+            <div className="mt-3">
+              <ErrorAlert title="Related topics error" message={relatedTopics.error} />
+            </div>
           )}
         </div>
       </div>

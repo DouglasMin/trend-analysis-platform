@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTrendsStore } from '@/stores/useTrendsStore';
+import ErrorAlert from '@/components/feedback/ErrorAlert';
+import LoadingSpinner from '@/components/feedback/LoadingSpinner';
 
 export default function NewsTrendsPanel() {
   const [query, setQuery] = useState('ai');
@@ -14,19 +16,6 @@ export default function NewsTrendsPanel() {
   const newsTrends = useTrendsStore((state) => state.newsTrends);
   const fetchNewsTrends = useTrendsStore((state) => state.fetchNewsTrends);
 
-  useEffect(() => {
-    void fetchNewsTrends({
-      q: query,
-      tbs: timeFilter || undefined,
-      start: start ? Number(start) : undefined,
-      hl,
-      gl,
-      location: location || undefined,
-      geo: geo || undefined,
-      no_cache: noCache || undefined,
-    });
-  }, [fetchNewsTrends, geo, gl, hl, location, noCache, query, start, timeFilter]);
-
   return (
     <div className="space-y-6">
       <div>
@@ -37,7 +26,22 @@ export default function NewsTrendsPanel() {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5">
+      <form
+        className="rounded-2xl border border-ink-700/10 bg-white/70 p-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void fetchNewsTrends({
+            q: query,
+            tbs: timeFilter || undefined,
+            start: start ? Number(start) : undefined,
+            hl,
+            gl,
+            location: location || undefined,
+            geo: geo || undefined,
+            no_cache: noCache || undefined,
+          });
+        }}
+      >
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <label className="space-y-2 text-xs text-ink-700/70">
             Query
@@ -115,19 +119,7 @@ export default function NewsTrendsPanel() {
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             className="rounded-full bg-ink-900 px-5 py-2 text-xs font-semibold text-paper"
-            type="button"
-            onClick={() => {
-              void fetchNewsTrends({
-                q: query,
-                tbs: timeFilter || undefined,
-                start: start ? Number(start) : undefined,
-                hl,
-                gl,
-                location: location || undefined,
-                geo: geo || undefined,
-                no_cache: noCache || undefined,
-              });
-            }}
+            type="submit"
           >
             Fetch news
           </button>
@@ -148,13 +140,12 @@ export default function NewsTrendsPanel() {
             </button>
           )}
         </div>
-      </div>
+      </form>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {newsTrends.status === 'loading' && (
-          <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5 text-sm text-ink-700/70">
-            Loading news...
-          </div>
+        {newsTrends.status === 'loading' && <LoadingSpinner label="Loading news..." />}
+        {newsTrends.error && (
+          <ErrorAlert title="News error" message={newsTrends.error} />
         )}
         {newsTrends.status !== 'loading' && newsTrends.data?.articles.length === 0 && (
           <div className="rounded-2xl border border-ink-700/10 bg-white/70 p-5 text-sm text-ink-700/70">

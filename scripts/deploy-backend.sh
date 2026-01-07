@@ -24,6 +24,11 @@ TIMESTAMP="$(date +%s)"
 
 echo -e "${YELLOW}🚀 Starting backend deployment...${NC}\n"
 
+echo -e "${YELLOW}🔐 Logging into ECR...${NC}"
+aws ecr get-login-password --region "$AWS_REGION" --profile "$AWS_PROFILE" | \
+  docker login --username AWS --password-stdin "$ECR_REGISTRY" >/dev/null
+echo -e "${GREEN}✓ ECR login OK${NC}\n"
+
 echo -e "${YELLOW}📦 Building and pushing linux/amd64 image...${NC}"
 cd "$BACKEND_DIR"
 docker buildx build --platform linux/amd64 --provenance=false \
@@ -31,11 +36,6 @@ docker buildx build --platform linux/amd64 --provenance=false \
   -t "${ECR_URI}:${TIMESTAMP}" \
   --push .
 echo -e "${GREEN}✓ Image pushed to ECR${NC}\n"
-
-echo -e "${YELLOW}🔐 Ensuring ECR login (docker may already be authenticated)...${NC}"
-aws ecr get-login-password --region "$AWS_REGION" --profile "$AWS_PROFILE" | \
-  docker login --username AWS --password-stdin "$ECR_REGISTRY" >/dev/null
-echo -e "${GREEN}✓ ECR login OK${NC}\n"
 
 echo -e "${YELLOW}🔄 Updating Lambda functions with latest image...${NC}"
 FUNCTIONS="$(aws lambda list-functions \

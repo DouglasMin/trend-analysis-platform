@@ -13,30 +13,29 @@ To deploy backend changes to AWS Lambda:
 ```
 
 This script will:
-1. ✅ Build TypeScript code (`npm run build`)
-2. ✅ Login to AWS ECR
-3. ✅ Build Docker image
-4. ✅ Tag image with `latest` and timestamp
-5. ✅ Push image to ECR
-6. ✅ Update Lambda function to use new image
-7. ✅ Wait for Lambda update to complete
+1. ✅ Login to AWS ECR
+2. ✅ Build Docker image
+3. ✅ Tag image with `latest` and timestamp
+4. ✅ Push image to ECR
+5. ✅ Update Lambda functions to use new image
+6. ✅ Wait for Lambda update to complete
 
 ### Environment Variables
 
 The script uses these environment variables (with defaults):
 
 ```bash
-AWS_REGION=us-east-1              # AWS region
+AWS_REGION=ap-northeast-2         # AWS region
 AWS_PROFILE=dongik2               # AWS CLI profile
 AWS_ACCOUNT_ID=863518440691       # AWS account ID
 ECR_REPOSITORY=trend-analysis-lambda  # ECR repository name
-LAMBDA_FUNCTION_NAME=trend-analysis-dev  # Lambda function name
+LAMBDA_PREFIX=trend-analysis-dev- # Lambda function name prefix
 ```
 
 You can override them:
 
 ```bash
-LAMBDA_FUNCTION_NAME=trend-analysis-prod ./scripts/deploy-backend.sh
+LAMBDA_PREFIX=trend-analysis-prod- ./scripts/deploy-backend.sh
 ```
 
 ### Prerequisites
@@ -56,43 +55,35 @@ Before running the deployment script:
    terraform apply
    ```
 
-4. **Lambda function created** (via Terraform)
-
-5. **Backend built successfully**:
-   ```bash
-   cd backend
-   npm run build
-   ```
+4. **Lambda functions created** (via Terraform)
 
 ### Manual Deployment Steps
 
 If you prefer manual deployment:
 
 ```bash
-# 1. Build TypeScript
+# 1. Login to ECR
+aws ecr get-login-password --region ap-northeast-2 --profile dongik2 | \
+  docker login --username AWS --password-stdin 863518440691.dkr.ecr.ap-northeast-2.amazonaws.com
+
+# 2. Build and push docker image
 cd backend
-npm run build
+docker buildx build --platform linux/amd64 --provenance=false \
+  -t 863518440691.dkr.ecr.ap-northeast-2.amazonaws.com/trend-analysis-lambda:latest \
+  --push .
 
-# 2. Login to ECR
-aws ecr get-login-password --region us-east-1 --profile dongik2 | \
-  docker login --username AWS --password-stdin 863518440691.dkr.ecr.us-east-1.amazonaws.com
-
-# 3. Build Docker image
-docker build -t trend-analysis-lambda:latest .
-
-# 4. Tag image
-docker tag trend-analysis-lambda:latest \
-  863518440691.dkr.ecr.us-east-1.amazonaws.com/trend-analysis-lambda:latest
-
-# 5. Push to ECR
-docker push 863518440691.dkr.ecr.us-east-1.amazonaws.com/trend-analysis-lambda:latest
-
-# 6. Update Lambda
-aws lambda update-function-code \
-  --function-name trend-analysis-dev \
-  --image-uri 863518440691.dkr.ecr.us-east-1.amazonaws.com/trend-analysis-lambda:latest \
-  --region us-east-1 \
-  --profile dongik2
+# 3. Update all Lambda functions in the project
+aws lambda list-functions \
+  --region ap-northeast-2 \
+  --profile dongik2 \
+  --query "Functions[?starts_with(FunctionName, \`trend-analysis-dev-\`)].FunctionName" \
+  --output text | tr '\t' '\n' | while read -r fn; do
+  aws lambda update-function-code \
+    --function-name "$fn" \
+    --image-uri 863518440691.dkr.ecr.ap-northeast-2.amazonaws.com/trend-analysis-lambda:latest \
+    --region ap-northeast-2 \
+    --profile dongik2
+done
 ```
 
 ## Frontend Deployment
@@ -125,8 +116,8 @@ terraform apply -target=aws_ecr_repository.lambda
 ### Lambda Update Fails
 
 ```bash
-# Check Lambda function exists
-aws lambda get-function --function-name trend-analysis-dev --profile dongik2
+# Check Lambda functions exist
+aws lambda list-functions --profile dongik2 --region ap-northeast-2 | rg trend-analysis-dev-
 
 # Check Lambda execution role has ECR permissions
 ```
@@ -160,8 +151,8 @@ GitHub Actions workflows will automate these deployments:
   ```bash
   aws lambda update-function-code \
     --function-name trend-analysis-dev \
-    --image-uri 863518440691.dkr.ecr.us-east-1.amazonaws.com/trend-analysis-lambda:20240103-143022 \
-    --region us-east-1 \
+    --image-uri 863518440691.dkr.ecr.ap-northeast-2.amazonaws.com/trend-analysis-lambda:20240103-143022 \
+    --region ap-northeast-2 \
     --profile dongik2
   ```
 

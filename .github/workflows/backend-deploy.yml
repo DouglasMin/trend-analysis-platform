@@ -1,0 +1,43 @@
+name: Backend Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - "scripts/deploy-backend.sh"
+      - "infrastructure/lambda.tf"
+      - "infrastructure/ecr.tf"
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Configure AWS profile (dongik2)
+        run: |
+          aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" --profile dongik2
+          aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" --profile dongik2
+          aws configure set region ap-northeast-2 --profile dongik2
+
+      - name: Deploy backend to Lambda
+        env:
+          AWS_REGION: ap-northeast-2
+          AWS_ACCOUNT_ID: 863518440691
+          ECR_REPOSITORY: trend-analysis-lambda
+          LAMBDA_PREFIX: trend-analysis-dev-
+        run: ./scripts/deploy-backend.sh
