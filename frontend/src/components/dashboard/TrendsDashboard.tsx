@@ -144,7 +144,7 @@ export default function TrendsDashboard() {
             {timeSeriesLoading ? (
               <LoadingSpinner label="Loading time series..." />
             ) : (
-              <TimeSeriesChart data={timeSeries} />
+              <TimeSeriesChart data={timeSeries ?? undefined} />
             )}
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function TrendsDashboard() {
         </div>
       </div>
 
-      <TrendComparisonChart data={timeSeries} />
+      <TrendComparisonChart data={timeSeries ?? undefined} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div>

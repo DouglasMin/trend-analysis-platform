@@ -11,7 +11,7 @@ import type { TimeSeriesData } from '@/types/trend';
 import { buildTimeSeriesRows, flattenRows, getSeriesColor } from './utils';
 
 interface TimeSeriesChartProps {
-  data?: TimeSeriesData;
+  data?: TimeSeriesData | null;
   height?: number;
 }
 

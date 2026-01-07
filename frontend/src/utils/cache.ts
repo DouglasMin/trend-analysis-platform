@@ -1,6 +1,6 @@
 import type { CacheDataType } from '@/stores/useCacheStore';
 
-type CacheKeyParams = Record<string, unknown>;
+type CacheKeyParams = Record<string, unknown> | object;
 
 function normalize(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -20,6 +20,6 @@ function normalize(value: unknown): unknown {
 }
 
 export function buildCacheKey(dataType: CacheDataType, params: CacheKeyParams): string {
-  const normalized = normalize(params);
+  const normalized = normalize(params as Record<string, unknown>);
   return `${dataType}:${JSON.stringify(normalized)}`;
 }

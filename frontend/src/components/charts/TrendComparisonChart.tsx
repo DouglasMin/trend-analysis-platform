@@ -13,7 +13,7 @@ import type { TimeSeriesData } from '@/types/trend';
 import { buildTimeSeriesRows, flattenRows, getSeriesColor } from './utils';
 
 interface TrendComparisonChartProps {
-  data?: TimeSeriesData;
+  data?: TimeSeriesData | null;
   height?: number;
 }
 

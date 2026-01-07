@@ -19,7 +19,7 @@ export function getSeriesColor(index: number): string {
   return fallbackColors[index % fallbackColors.length];
 }
 
-export function buildTimeSeriesRows(data?: TimeSeriesData): ChartSeriesRow[] {
+export function buildTimeSeriesRows(data?: TimeSeriesData | null): ChartSeriesRow[] {
   if (!data || !data.series.length) return [];
   const byTimestamp = new Map<number, ChartSeriesRow>();
 

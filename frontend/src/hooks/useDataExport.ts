@@ -238,7 +238,7 @@ export function useDataExport(): UseDataExportReturn {
     const sections: string[] = [];
 
     if (report.timeSeries) {
-      const rows = [['section', 'timestamp', 'query', 'value']];
+      const rows: Array<Array<unknown>> = [['section', 'timestamp', 'query', 'value']];
       report.timeSeries.series.forEach((series) => {
         series.data.forEach((point) => {
           rows.push(['timeSeries', point.timestamp, series.query, point.value]);
@@ -248,7 +248,7 @@ export function useDataExport(): UseDataExportReturn {
     }
 
     if (report.regional) {
-      const rows = [['section', 'query', 'location', 'geoCode', 'value']];
+      const rows: Array<Array<unknown>> = [['section', 'query', 'location', 'geoCode', 'value']];
       report.regional.series.forEach((series) => {
         series.values.forEach((value) => {
           rows.push(['regional', series.query, value.location, value.geoCode, value.value]);

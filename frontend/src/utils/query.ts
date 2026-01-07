@@ -1,5 +1,7 @@
-export function buildQueryString(params: Record<string, unknown>): string {
-  const entries = Object.entries(params).filter(([, value]) => value !== undefined);
+export function buildQueryString(params: Record<string, unknown> | object): string {
+  const entries = Object.entries(params as Record<string, unknown>).filter(
+    ([, value]) => value !== undefined
+  );
   const query = new URLSearchParams();
   for (const [key, value] of entries) {
     if (Array.isArray(value)) {

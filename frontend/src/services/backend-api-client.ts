@@ -112,7 +112,7 @@ export class BackendAPIClient {
     return this.request('/trends/comprehensive-report', params);
   }
 
-  private async request<T>(path: string, params: Record<string, unknown>): Promise<T> {
+  private async request<T>(path: string, params: Record<string, unknown> | object): Promise<T> {
     const query = buildQueryString(params);
     const url = `${this.baseUrl}${path}${query ? `?${query}` : ''}`;
     let requestInit: RequestInit = {

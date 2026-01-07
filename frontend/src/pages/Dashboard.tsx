@@ -52,7 +52,7 @@ export default function Dashboard() {
           {timeSeriesLoading ? (
             <LoadingSpinner label="Loading trend snapshot..." />
           ) : (
-            <TimeSeriesChart data={timeSeries} height={220} />
+            <TimeSeriesChart data={timeSeries ?? undefined} height={220} />
           )}
           {timeSeriesError && (
             <div className="mt-3">
